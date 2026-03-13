@@ -10,6 +10,24 @@ let currentIdeaId = null;
 let selectedIds = [];
 let zoomLevel = 1;
 let selectedKeyword = null;
+let selectedCategory = null;
+let isPanMode = false;
+let isPanning = false;
+let panStart = { x: 0, y: 0 };
+let scrollStart = { x: 0, y: 0 };
+
+const CATEGORIES = [
+    { id: 'travel', name: '여행', icon: '✈️', color: '#FF8A00' },
+    { id: 'stay', name: '숙박', icon: '🏨', color: '#FFD24A' },
+    { id: 'food', name: '음식', icon: '🍴', color: '#FF5656' },
+    { id: 'sight', name: '관광', icon: '📍', color: '#4CAF50' },
+    { id: 'shop', name: '쇼핑', icon: '🛍️', color: '#9C27B0' },
+    { id: 'trans', name: '교통', icon: '🚆', color: '#2196F3' },
+    { id: 'service', name: '서비스', icon: '⚙️', color: '#795548' },
+    { id: 'ux', name: 'UX', icon: '📱', color: '#607D8B' },
+    { id: 'content', name: '콘텐츠', icon: '🎬', color: '#E91E63' },
+    { id: 'biz', name: '비즈니스', icon: '💼', color: '#3F51B5' }
+];
 
 const STORAGE_KEY = 'ideaspark_data';
 
@@ -20,6 +38,7 @@ const dummyIdeas = [
         title: '친환경 패키지 구독 서비스',
         description: '제로 웨이스트를 지향하는 가구를 위한 정기 배송 패키지 서비스입니다. 생분해성 소재만을 사용하여 포장하며, 다회용기를 수거하는 시스템을 포함합니다.',
         author: '김현준',
+        category: 'service',
         createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
         position: { x: 150, y: 150 },
         tags: ['환경', '구독', '배송'],
@@ -37,6 +56,7 @@ const dummyIdeas = [
         title: 'AI 기반 퍼스널 컬러 쇼핑 도우미',
         description: '사용자의 얼굴 사진을 분석하여 퍼스널 컬러를 진단하고, 이에 맞는 의류 및 화장품을 추천해주는 모바일 앱 아이디어입니다.',
         author: '박성은',
+        category: 'biz',
         createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
         position: { x: 500, y: 300 },
         tags: ['AI', '패션', '쇼핑'],
@@ -50,6 +70,7 @@ const dummyIdeas = [
         title: '[AI 추천] 로컬 기반 퍼스널 컬러 오프라인 팝업',
         description: '앱 사용자들이 실제로 제품을 테스트해볼 수 있는 오프라인 거점을 제안합니다. 동네 미용실이나 메이크업 샵과 연계할 수 있습니다.',
         author: 'IdeaSpark AI',
+        category: 'biz',
         createdAt: new Date().toISOString(),
         position: { x: 850, y: 350 },
         tags: ['AI', '오프라인', '팝업'],
@@ -105,10 +126,13 @@ function renderList() {
     const searchTerm = document.getElementById('search-input').value.toLowerCase();
     const sortBy = document.getElementById('sort-select').value;
 
-    let filtered = ideas.filter(idea => 
-        idea.title.toLowerCase().includes(searchTerm) || 
-        idea.description.toLowerCase().includes(searchTerm)
-    );
+    let filtered = ideas.filter(idea => {
+        const category = CATEGORIES.find(c => c.id === idea.category);
+        const categoryName = category ? category.name : '';
+        return idea.title.toLowerCase().includes(searchTerm) || 
+               idea.description.toLowerCase().includes(searchTerm) ||
+               categoryName.toLowerCase().includes(searchTerm)
+    });
 
     // Sorting
     if (sortBy === 'newest') {
@@ -140,16 +164,27 @@ function renderBoard() {
     
     canvas.innerHTML = ideas.map(idea => {
         const isSelected = selectedIds.includes(idea.id);
-        const hasKeyword = selectedKeyword && idea.tags && idea.tags.includes(selectedKeyword);
-        const isMatch = hasKeyword;
+        const searchTerm = document.getElementById('search-input').value.toLowerCase();
+        
+        const category = CATEGORIES.find(c => c.id === idea.category);
+        const categoryName = category ? category.name : '기타';
+        const categoryIcon = category ? category.icon : '💡';
+        
+        // Search Matching
+        const isHighlight = searchTerm.length > 0 && (
+            idea.title.toLowerCase().includes(searchTerm) || 
+            idea.description.toLowerCase().includes(searchTerm) ||
+            categoryName.toLowerCase().includes(searchTerm)
+        );
         
         return `
-            <div class="card ${idea.isAiGenerated ? 'card--ai' : ''} ${isSelected ? 'card--selected' : ''} ${isMatch ? 'card--highlight' : ''}" 
+            <div class="card ${idea.isAiGenerated ? 'card--ai' : ''} ${isSelected ? 'card--selected' : ''} ${isHighlight ? 'card--highlight' : ''}" 
                  style="transform: translate(${idea.position.x}px, ${idea.position.y}px)"
                  data-id="${idea.id}">
-                <span class="card__badge ${idea.isAiGenerated ? 'card__badge--ai' : 'card__badge--general'}">
-                    ${idea.isAiGenerated ? 'AI Recommended' : 'Standard'}
-                </span>
+                <div class="card__category" style="color: ${category?.color || 'var(--primary)'}">
+                    <span class="card__category-icon">${categoryIcon}</span>
+                    <span class="card__category-name">${categoryName}</span>
+                </div>
                 <h3 class="card__title">${idea.title}</h3>
                 <div class="keyword-list">
                     ${(idea.tags || []).map(tag => `<span class="keyword-tag ${selectedKeyword === tag ? 'keyword-tag--active' : ''}" data-tag="${tag}">${tag}</span>`).join('')}
@@ -160,6 +195,7 @@ function renderBoard() {
                         ? `<span class="card__rel">↔ Link</span>` : '<span>Idea</span>'}
                     <span>💬 ${idea.comments.length}</span>
                 </div>
+                <div class="card__anchor" title="드래그하여 새 아이디어 연결"></div>
             </div>
         `;
     }).join('');
@@ -196,10 +232,33 @@ function renderBoard() {
 // --- Board Drag and Drop (Simple) ---
 let draggedElement = null;
 let offset = { x: 0, y: 0 };
+let isCreatingMode = false;
+let startPos = { x: 0, y: 0 };
+let currentTargetId = null;
 
 function startDragging(e) {
+    if (isPanMode) return; // Hand tool handles this separately
     if (e.target.closest('.card__footer')) return; // Avoid drag on footer links
     
+    // Check if dragging from anchor
+    if (e.target.classList.contains('card__anchor')) {
+        isCreatingMode = true;
+        draggedElement = e.currentTarget;
+        currentTargetId = draggedElement.dataset.id;
+        
+        const canvas = document.getElementById('board-canvas');
+        const canvasRect = canvas.getBoundingClientRect();
+        
+        // Start position (center of card or anchor point)
+        const rect = draggedElement.getBoundingClientRect();
+        startPos.x = (rect.left + rect.width / 2) - canvasRect.left;
+        startPos.y = (rect.top + rect.height / 2) - canvasRect.top;
+        
+        document.addEventListener('mousemove', onDragging);
+        document.addEventListener('mouseup', stopDragging);
+        return;
+    }
+
     draggedElement = e.currentTarget;
     draggedElement.dataset.isDragging = 'false';
     const rect = draggedElement.getBoundingClientRect();
@@ -212,10 +271,25 @@ function startDragging(e) {
 
 function onDragging(e) {
     if (!draggedElement) return;
-    draggedElement.dataset.isDragging = 'true';
     
     const canvas = document.getElementById('board-canvas');
     const canvasRect = canvas.getBoundingClientRect();
+
+    if (isCreatingMode) {
+        // Render temporary connection line
+        const svg = document.getElementById('board-svg');
+        const x2 = (e.clientX - canvasRect.left) / zoomLevel;
+        const y2 = (e.clientY - canvasRect.top) / zoomLevel;
+        const x1 = startPos.x / zoomLevel;
+        const y1 = startPos.y / zoomLevel;
+        
+        renderConnections(); // Initial render to keep existing
+        const tempLine = `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="board__line board__line--temp" marker-end="url(#arrowhead)" />`;
+        svg.innerHTML += tempLine;
+        return;
+    }
+
+    draggedElement.dataset.isDragging = 'true';
     
     let x = e.clientX - canvasRect.left - offset.x;
     let y = e.clientY - canvasRect.top - offset.y;
@@ -236,14 +310,99 @@ function onDragging(e) {
     }
 }
 
-function stopDragging() {
-    if (draggedElement) {
+function stopDragging(e) {
+    if (isCreatingMode && draggedElement) {
+        const canvas = document.getElementById('board-canvas');
+        const canvasRect = canvas.getBoundingClientRect();
+        const x = (e.clientX - canvasRect.left) / zoomLevel - 140;
+        const y = (e.clientY - canvasRect.top) / zoomLevel - 50;
+        
+        createNewIdeaAtPosition(x, y, currentTargetId);
+    } else if (draggedElement) {
         saveData();
-        renderList(); // Refresh list to keep sync (though scroll might jump)
-        draggedElement = null;
+        renderList();
     }
+    
+    isCreatingMode = false;
+    draggedElement = null;
+    currentTargetId = null;
     document.removeEventListener('mousemove', onDragging);
     document.removeEventListener('mouseup', stopDragging);
+}
+
+function createNewIdeaAtPosition(x, y, parentId) {
+    const parentIdea = ideas.find(i => i.id === parentId);
+    
+    const newIdea = {
+        id: Date.now().toString(),
+        title: '새 아이디어',
+        description: '내용을 입력해주세요.',
+        category: parentIdea ? parentIdea.category : 'service',
+        author: 'User',
+        createdAt: new Date().toISOString(),
+        position: { x, y },
+        tags: [],
+        isAiGenerated: false,
+        parentIdeaId: parentId,
+        comments: [],
+        attachments: []
+    };
+
+    ideas.push(newIdea);
+    saveData();
+    renderAll();
+    
+    // Open for edit
+    openDetail(newIdea.id);
+    toggleEditMode();
+}
+
+// --- Hand Tool / Panning Logic ---
+function togglePanMode() {
+    isPanMode = !isPanMode;
+    const btn = document.getElementById('btn-hand-tool');
+    const board = document.getElementById('board');
+    
+    if (isPanMode) {
+        btn.classList.add('zoom-controls__btn--active');
+        board.classList.add('board--pan-mode');
+        board.addEventListener('mousedown', startPanning);
+    } else {
+        btn.classList.remove('zoom-controls__btn--active');
+        board.classList.remove('board--pan-mode');
+        board.removeEventListener('mousedown', startPanning);
+    }
+}
+
+function startPanning(e) {
+    if (!isPanMode) return;
+    if (e.target.closest('.card')) return; // Allow interaction with cards if clicked directly (though CSS pointer-events: none is safer)
+
+    isPanning = true;
+    const board = document.getElementById('board');
+    panStart.x = e.clientX;
+    panStart.y = e.clientY;
+    scrollStart.x = board.scrollLeft;
+    scrollStart.y = board.scrollTop;
+
+    document.addEventListener('mousemove', onPanning);
+    document.addEventListener('mouseup', stopPanning);
+}
+
+function onPanning(e) {
+    if (!isPanning) return;
+    const board = document.getElementById('board');
+    const dx = e.clientX - panStart.x;
+    const dy = e.clientY - panStart.y;
+    
+    board.scrollLeft = scrollStart.x - dx;
+    board.scrollTop = scrollStart.y - dy;
+}
+
+function stopPanning() {
+    isPanning = false;
+    document.removeEventListener('mousemove', onPanning);
+    document.removeEventListener('mouseup', stopPanning);
 }
 
 // --- Detail Panel Logic ---
@@ -265,13 +424,27 @@ function openDetail(id) {
     badge.innerText = idea.isAiGenerated ? 'AI 추천' : '일반';
     badge.className = `badge ${idea.isAiGenerated ? 'badge--ai' : ''}`;
 
+    // Category display
+    const category = CATEGORIES.find(c => c.id === idea.category);
+    const categoryDisplay = document.getElementById('detail-category-display');
+    categoryDisplay.innerHTML = `
+        <span class="badge" style="background-color: ${category?.color}22; color: ${category?.color}">
+            ${category ? category.icon + ' ' + category.name : '기타'}
+        </span>
+    `;
+
+    // Category Select Setup
+    const categorySelect = document.getElementById('detail-category-select');
+    categorySelect.innerHTML = CATEGORIES.map(c => `<option value="${c.id}" ${idea.category === c.id ? 'selected' : ''}>${c.icon} ${c.name}</option>`).join('');
+
     // Keywords
     const keywordContainer = document.getElementById('detail-keywords');
     keywordContainer.innerHTML = (idea.tags || []).map(tag => `<span class="keyword-tag ${selectedKeyword === tag ? 'keyword-tag--active' : ''}" data-tag="${tag}">${tag}</span>`).join('');
     document.getElementById('detail-keywords-input').value = (idea.tags || []).join(', ');
     
     keywordContainer.querySelectorAll('.keyword-tag').forEach(tagElem => {
-        tagElem.onclick = () => {
+        tagElem.onclick = (e) => {
+            e.stopPropagation();
             const tag = tagElem.dataset.tag;
             selectedKeyword = selectedKeyword === tag ? null : tag;
             renderAll();
@@ -328,6 +501,7 @@ function renderFiles(files) {
 function addNewIdea() {
     const title = document.getElementById('new-title').value;
     const desc = document.getElementById('new-desc').value;
+    const category = document.getElementById('new-category').value;
     const keywordText = document.getElementById('new-keywords').value;
     
     if (!title.trim()) return alert('제목을 입력하세요');
@@ -338,6 +512,7 @@ function addNewIdea() {
         id: Date.now().toString(),
         title,
         description: desc,
+        category,
         author: 'User',
         createdAt: new Date().toISOString(),
         position: { x: 100, y: 100 },
@@ -377,6 +552,8 @@ function toggleEditMode() {
         titleElem.focus();
         document.getElementById('btn-edit-idea').classList.add('detail-panel__btn-save--hidden');
         document.getElementById('btn-save-idea').classList.remove('detail-panel__btn-save--hidden');
+        document.getElementById('detail-category-display').classList.add('detail-panel__input--hidden');
+        document.getElementById('detail-category-select').classList.remove('detail-panel__input--hidden');
         document.getElementById('detail-keywords').classList.add('detail-panel__input--hidden');
         document.getElementById('detail-keywords-input').classList.remove('detail-panel__input--hidden');
     } else {
@@ -389,6 +566,7 @@ function saveEditedIdea() {
     if (idea) {
         idea.title = document.getElementById('detail-title').innerText;
         idea.description = document.getElementById('detail-description').innerText;
+        idea.category = document.getElementById('detail-category-select').value;
         const keywordText = document.getElementById('detail-keywords-input').value;
         idea.tags = keywordText.split(',').map(t => t.trim()).filter(t => t);
         saveData();
@@ -402,6 +580,8 @@ function saveEditedIdea() {
     
     document.getElementById('btn-edit-idea').classList.remove('detail-panel__btn-save--hidden');
     document.getElementById('btn-save-idea').classList.add('detail-panel__btn-save--hidden');
+    document.getElementById('detail-category-display').classList.remove('detail-panel__input--hidden');
+    document.getElementById('detail-category-select').classList.add('detail-panel__input--hidden');
     document.getElementById('detail-keywords').classList.remove('detail-panel__input--hidden');
     document.getElementById('detail-keywords-input').classList.add('detail-panel__input--hidden');
 }
@@ -564,7 +744,13 @@ function renderConnections() {
         const x2 = p2.position.x + 140;
         const y2 = p2.position.y + 200;
         return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="board__line" marker-end="url(#arrowhead)" />`;
-    }).join('');
+    }).join('') + `
+        <defs>
+            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                <polygon points="0 0, 10 3.5, 0 7" fill="#747474" />
+            </marker>
+        </defs>
+    `;
 }
 
 // --- Grouping Logic ---
@@ -634,10 +820,14 @@ function setupEventListeners() {
     document.getElementById('btn-zoom-fit').onclick = zoomFit;
     document.getElementById('btn-connect-cards').onclick = connectSelected;
     document.getElementById('btn-group-cards').onclick = groupSelected;
+    document.getElementById('btn-hand-tool').onclick = togglePanMode;
 }
 
 // --- Modal Helper ---
 function openModal() {
+    // Populate categories
+    const select = document.getElementById('new-category');
+    select.innerHTML = CATEGORIES.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
     document.getElementById('add-modal').classList.add('modal--active');
 }
 

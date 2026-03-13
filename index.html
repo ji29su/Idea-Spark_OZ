@@ -71,6 +71,7 @@
                 </div>
             </div>
             <div class="board__controls zoom-controls">
+                <button id="btn-hand-tool" class="zoom-controls__btn" title="보드 이동 모드">✋</button>
                 <button id="btn-zoom-in" class="zoom-controls__btn" title="확대">+</button>
                 <button id="btn-zoom-out" class="zoom-controls__btn" title="축소">-</button>
                 <button id="btn-zoom-fit" class="zoom-controls__btn" title="화면에 맞춤">⛶</button>
@@ -100,7 +101,15 @@
                 </div>
 
                 <div class="detail-panel__section">
-                    <h3>키워드</h3>
+                    <h3>카테고리</h3>
+                    <div id="detail-category-display" class="category-indicator"></div>
+                    <select id="detail-category-select" class="select detail-panel__input--hidden">
+                        <!-- Options populated by JS -->
+                    </select>
+                </div>
+
+                <div class="detail-panel__section">
+                    <h3>태그 (키워드)</h3>
                     <div id="detail-keywords" class="keyword-list"></div>
                     <input type="text" id="detail-keywords-input" class="input detail-panel__input--hidden" placeholder="키워드 입력 (쉼표로 구분)">
                 </div>
@@ -160,7 +169,13 @@
                     <textarea id="new-desc" class="textarea" placeholder="아이디어에 대해 자세히 적어주세요"></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="new-keywords">키워드</label>
+                    <label for="new-category">카테고리</label>
+                    <select id="new-category" class="select">
+                        <!-- Options populated by JS -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="new-keywords">태그 (키워드)</label>
                     <input type="text" id="new-keywords" class="input" placeholder="키워드 (예: 환경, 구독, 앱)">
                 </div>
             </div>

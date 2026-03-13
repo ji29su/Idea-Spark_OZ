@@ -1,21 +1,26 @@
 /* CSS Variables & Design Tokens */
 :root {
-    --primary: #566DFF;
-    --primary-soft: #DCE5FF;
-    --background: #F7F8FC;
+    --primary: #FF8A00;          /* Orange */
+    --primary-hover: #E67C00;    /* Darker Orange */
+    --primary-press: #CC6E00;    /* Even Darker Orange */
+    --primary-soft: #FFF4E5;     /* Soft Orange */
+    --secondary: #ececec;        /* Yellow */
+    --secondary-hover: #d6d1c4;
+    --background: #FDF9F4;       /* Warm Background */
     --surface: #FFFFFF;
-    --text-primary: #1F253D;
-    --text-secondary: #98A1B3;
-    --border: #E8ECF4;
+    --text-primary: #2D241E;     /* Dark Brown-Grey for readability */
+    --text-secondary: #747474;
+    --border: #F0E6DA;
     --danger: #FF5656;
-    --ai-purple: #9056FF;
+    --accent: #FF8A00;           /* Main Theme Accent */
+    --accent-soft: #FFE8CC;      /* Soft Accent for highlights */
     
     --radius-small: 12px;
     --radius-medium: 18px;
     --radius-large: 24px;
     
-    --shadow: 0 4px 16px rgba(31, 37, 61, 0.06);
-    --shadow-hover: 0 8px 24px rgba(31, 37, 61, 0.12);
+    --shadow: 0 4px 16px rgba(45, 36, 30, 0.04);
+    --shadow-hover: 0 8px 24px rgba(45, 36, 30, 0.08);
     
     --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
@@ -161,6 +166,24 @@ button {
         radial-gradient(circle, var(--border) 1px, transparent 1px);
     background-size: 30px 30px;
     padding: 100px; /* Space for panning */
+    user-select: none;
+}
+
+.board--pan-mode {
+    cursor: grab !important;
+}
+
+.board--pan-mode:active {
+    cursor: grabbing !important;
+}
+
+.board--pan-mode .card {
+    cursor: default !important;
+    pointer-events: none; /* Only the board should be draggable in pan mode */
+}
+
+.board--pan-mode .card__anchor {
+    display: none;
 }
 
 .board__canvas {
@@ -262,9 +285,10 @@ button {
     transition: all 0.2s;
 }
 
-.zoom-controls__btn:hover {
-    background-color: var(--primary-soft);
-    color: var(--primary);
+.zoom-controls__btn:hover,
+.zoom-controls__btn--active {
+    background-color: var(--primary);
+    color: white;
 }
 
 .zoom-controls__level {
@@ -298,8 +322,8 @@ button {
 }
 
 .card--ai {
-    border: 2px solid var(--ai-purple);
-    background: linear-gradient(135deg, var(--surface) 0%, #FAF8FF 100%);
+    border: 2px solid var(--accent);
+    background: linear-gradient(135deg, var(--surface) 0%, var(--primary-soft) 100%);
 }
 
 .card--selected {
@@ -314,9 +338,26 @@ button {
 }
 
 @keyframes pulseHighlight {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.02); }
-    100% { transform: scale(1); }
+    0% { transform: scale(1); box-shadow: 0 0 0px var(--primary); }
+    50% { transform: scale(1.02); box-shadow: 0 0 20px var(--primary); }
+    100% { transform: scale(1); box-shadow: 0 0 0px var(--primary); }
+}
+
+.card__category {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.card__category-icon {
+    font-size: 1rem;
+}
+
+.category-indicator {
+    margin-bottom: 16px;
 }
 
 .card__badge {
@@ -335,8 +376,8 @@ button {
 }
 
 .card__badge--ai {
-    background-color: #F0E8FF;
-    color: var(--ai-purple);
+    background-color: var(--accent-soft);
+    color: var(--accent);
 }
 
 .card__title {
@@ -355,6 +396,38 @@ button {
     line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+}
+
+.card__anchor {
+    position: absolute;
+    right: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    background-color: var(--primary);
+    border: 3px solid white;
+    border-radius: 50%;
+    cursor: crosshair;
+    box-shadow: var(--shadow);
+    z-index: 20;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.card:hover .card__anchor {
+    opacity: 1;
+}
+
+.card__anchor:hover {
+    transform: translateY(-50%) scale(1.2);
+    background-color: var(--primary-hover);
+}
+
+.board__line--temp {
+    stroke: var(--primary);
+    stroke-dasharray: none;
+    opacity: 0.6;
 }
 
 .card__footer {
@@ -390,17 +463,22 @@ button {
 }
 
 .button--primary:hover {
-    background-color: #455EDB;
+    background-color: var(--primary-hover);
     transform: translateY(-1px);
 }
 
+.button--primary:active {
+    background-color: var(--primary-press);
+    transform: translateY(0);
+}
+
 .button--secondary {
-    background-color: var(--primary-soft);
-    color: var(--primary);
+    background-color: var(--secondary);
+    color: var(--text-primary);
 }
 
 .button--secondary:hover {
-    background-color: #CFD9FF;
+    background-color: var(--secondary-hover);
 }
 
 .button--outline {
@@ -450,6 +528,16 @@ button {
 
 .input:focus, .textarea:focus, .select:focus {
     border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+/* Sidebar Select Polishing */
+.sidebar__actions .select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238E7F71' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center; /* Slightly adjusted for better balance */
+    padding-right: 40px; /* Adjusted to balance with left padding */
 }
 
 .textarea {
@@ -712,13 +800,13 @@ button {
 
 .parent-card {
     padding: 12px;
-    border: 1px dashed var(--ai-purple);
+    border: 1px dashed var(--accent);
     border-radius: var(--radius-small);
-    background-color: #FAF8FF;
+    background-color: var(--primary-soft);
     cursor: pointer;
     font-size: 0.9rem;
     font-weight: 600;
-    color: var(--ai-purple);
+    color: var(--accent);
 }
 
 /* Logo */
