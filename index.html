@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IdeaSpark - AI Brainstorming Platform</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="app">
+    <header class="app__header">
+        <div class="logo">
+            <span class="logo__icon">✨</span>
+            <h1 class="logo__text">IdeaSpark</h1>
+        </div>
+        <nav class="app__nav">
+            <button id="btn-add-idea" class="button button--primary">
+                <span class="button__icon">+</span> 새 아이디어 추가
+            </button>
+            <div class="app__actions">
+                <button id="btn-connect-cards" class="button button--outline button--small">
+                    연결
+                </button>
+                <button id="btn-group-cards" class="button button--outline button--small">
+                    그룹화
+                </button>
+            </div>
+            <button id="btn-ai-recommend" class="button button--secondary">
+                <span class="button__icon">🤖</span> AI 추천
+            </button>
+        </nav>
+    </header>
+
+    <main class="app__content">
+        <!-- Sidebar: Idea List -->
+        <aside class="app__sidebar sidebar">
+            <div class="sidebar__header">
+                <h2 class="sidebar__title">아이디어 목록</h2>
+                <div class="sidebar__actions">
+                    <select id="sort-select" class="select">
+                        <option value="newest">최신순</option>
+                        <option value="comments">댓글 많은 순</option>
+                        <option value="ai">AI 추천 포함</option>
+                    </select>
+                </div>
+            </div>
+            <div class="sidebar__search">
+                <input type="text" id="search-input" class="input" placeholder="아이디어 검색...">
+            </div>
+            <ul id="idea-list" class="idea-list">
+                <!-- Idea List Items injected here -->
+            </ul>
+        </aside>
+
+        <!-- Main Board -->
+        <section class="app__board board" id="board">
+            <div class="board__canvas" id="board-canvas">
+                <svg class="board__svg" id="board-svg">
+                    <defs>
+                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="var(--text-secondary)" />
+                        </marker>
+                    </defs>
+                </svg>
+                <div class="board__groups" id="board-groups"></div>
+                <div class="board__cards" id="board-cards">
+                    <!-- Board Cards injected here -->
+                </div>
+            </div>
+            <div class="board__controls zoom-controls">
+                <button id="btn-zoom-in" class="zoom-controls__btn" title="확대">+</button>
+                <button id="btn-zoom-out" class="zoom-controls__btn" title="축소">-</button>
+                <button id="btn-zoom-fit" class="zoom-controls__btn" title="화면에 맞춤">⛶</button>
+                <span id="zoom-level" class="zoom-controls__level">100%</span>
+            </div>
+        </section>
+    </main>
+
+    <!-- Detail Side Panel (Overlay/Modal style for MVP) -->
+    <div id="detail-panel" class="detail-panel">
+        <div class="detail-panel__overlay" id="detail-overlay"></div>
+        <div class="detail-panel__content">
+            <header class="detail-panel__header">
+                <button id="btn-close-detail" class="button--close">&times;</button>
+                <div class="detail-panel__meta">
+                    <span id="detail-badge" class="badge">일반</span>
+                    <span id="detail-date" class="date"></span>
+                </div>
+                <h2 id="detail-title" class="detail-panel__title" contenteditable="false"></h2>
+                <div class="detail-panel__author">작성자: <span id="detail-author"></span></div>
+            </header>
+
+            <div class="detail-panel__body">
+                <div class="detail-panel__section">
+                    <h3>상세 설명</h3>
+                    <p id="detail-description" class="detail-panel__desc" contenteditable="false"></p>
+                </div>
+
+                <div class="detail-panel__section">
+                    <h3>키워드</h3>
+                    <div id="detail-keywords" class="keyword-list"></div>
+                    <input type="text" id="detail-keywords-input" class="input detail-panel__input--hidden" placeholder="키워드 입력 (쉼표로 구분)">
+                </div>
+
+                <div id="parent-info" class="detail-panel__section detail-panel__section--hidden">
+                    <h3>연관 아이디어 (원본)</h3>
+                    <div id="parent-link" class="parent-card"></div>
+                </div>
+
+                <div class="detail-panel__section">
+                    <h3>첨부파일</h3>
+                    <div class="file-manager">
+                        <label class="button button--small button--outline">
+                            파일 첨부 <input type="file" id="file-input" hidden>
+                        </label>
+                        <ul id="file-list" class="file-list">
+                            <!-- Files injected here -->
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="detail-panel__section">
+                    <h3>댓글 (<span id="comment-count">0</span>)</h3>
+                    <div class="comment-input">
+                        <textarea id="comment-textarea" class="textarea" placeholder="의견을 남겨주세요..."></textarea>
+                        <button id="btn-add-comment" class="button button--primary button--small">등록</button>
+                    </div>
+                    <ul id="comment-list" class="comment-list">
+                        <!-- Comments injected here -->
+                    </ul>
+                </div>
+            </div>
+
+            <footer class="detail-panel__footer">
+                <button id="btn-edit-idea" class="button button--outline">수정</button>
+                <button id="btn-save-idea" class="button button--primary detail-panel__btn-save--hidden">저장</button>
+                <button id="btn-delete-idea" class="button button--danger">삭제</button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Add Idea Modal -->
+    <div id="add-modal" class="modal">
+        <div class="modal__overlay"></div>
+        <div class="modal__container">
+            <header class="modal__header">
+                <h2>새 아이디어 추가</h2>
+                <button id="btn-close-modal" class="button--close">&times;</button>
+            </header>
+            <div class="modal__body">
+                <div class="form-group">
+                    <label for="new-title">제목</label>
+                    <input type="text" id="new-title" class="input" placeholder="아이디어 제목을 입력하세요">
+                </div>
+                <div class="form-group">
+                    <label for="new-desc">설명</label>
+                    <textarea id="new-desc" class="textarea" placeholder="아이디어에 대해 자세히 적어주세요"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="new-keywords">키워드</label>
+                    <input type="text" id="new-keywords" class="input" placeholder="키워드 (예: 환경, 구독, 앱)">
+                </div>
+            </div>
+            <footer class="modal__footer">
+                <button id="btn-cancel-add" class="button button--outline">취소</button>
+                <button id="btn-confirm-add" class="button button--primary">생성하기</button>
+            </footer>
+        </div>
+    </div>
+
+    <script src="scripts/app.js"></script>
+</body>
+</html>
